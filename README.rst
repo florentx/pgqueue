@@ -117,7 +117,8 @@ Also refer to `the upstream documentation for more details
 <http://skytools.projects.pgfoundry.org/skytools-3.0/>`_.
 
 
-== Credits ==
+Credits
+-------
 
 PgQ is a PostgreSQL extension which is developed by Marko Kreen.
 It is part of SkyTools, a package of tools in use in Skype for
