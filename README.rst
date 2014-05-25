@@ -51,11 +51,16 @@ and execute maintenance tasks.
 Installation
 ------------
 
-The ``pgq`` extension is required on the PostgreSQL server.
+Prerequisites:
 
-On Debian / Ubuntu you will add `the APT repository
+- Python >= 2.6 or Python 3
+- psycopg2 is automatically installed as a dependency
+- (on the server) the ``PgQ`` extension version >= 3.1
+
+On Debian / Ubuntu you will add `the PostgreSQL APT repository
 <https://wiki.postgresql.org/wiki/Apt>`_, then install the package
-``postgresql-9.x-pgq3`` depending on the PostgreSQL version.
+``postgresql-x.x-pgq3`` depending on the PostgreSQL version.
+
 Finally create the extension in the database:
 
 ::
@@ -92,8 +97,10 @@ Let's create a new queue, and register a consumer:
   conn = psycopg2.connect("dbname=test user=postgres")
   conn.autocommit = True
   cur = conn.cursor()
+
   first_q = Queue('first_queue')
   first_q.create(cursor, ticker_max_lag='4 seconds')
+
   consum_q = Consumer('first_queue', 'consumer_one')
   consum_q.register(cursor)
 
@@ -105,7 +112,9 @@ later in the application:
 
   first_q.insert_event(cursor, 'announce', 'Hello ...')
   first_q.insert_event(cursor, 'announce', 'Hello world!')
+
   # ... wait a little bit
+
   conn.autocommit = False
   for event in consum_q.next_events(cursor, commit=True):
       print(event)
