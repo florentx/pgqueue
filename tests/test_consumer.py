@@ -39,6 +39,13 @@ def mock_cursor(autocommit=False):
     cursor.connection.autocommit = autocommit
     # return the same cursor when used as a context manager
     cursor.connection.cursor.return_value.__enter__.return_value = cursor
+
+    # http://bugs.python.org/issue18622
+    def safe_reset_mock():
+        cursor.connection.cursor.return_value.__enter__.return_value = None
+        cursor.reset_mock()
+        cursor.connection.cursor.return_value.__enter__.return_value = cursor
+    cursor.safe_reset_mock = safe_reset_mock
     return cursor
 
 
@@ -225,6 +232,33 @@ class TestEvent(unittest2.TestCase):
             C.execute(NEXT_BATCH, ('main_q', 'first', None, None, None)),
             C.fetchone(),
             C.connection.commit(),
+            C.connection.cursor().__exit__(None, None, None),
+        ])
+
+    def test_abort(self):
+        cur = mock_cursor()
+        cur.fetchone.side_effect = [BATCH_INFO, BATCH_NULL]
+        cur.fetchall.side_effect = [[EVENT1, EVENT2, EVENT3], [EVENT4]]
+        consu = pgqueue.Consumer('main_q', 'first')
+        consu.pgq_lazy_fetch = 3    # instead of 300
+
+        events = []
+        for event in consu.next_events(cur, commit=True):
+            events.append(str(event))
+            if len(events) == 4:
+                break
+
+        self.assertSequenceEqual(cur.mock_calls, [
+            C.connection.cursor(cursor_factory=ANY),
+            C.connection.cursor().__enter__(),
+            C.execute(NEXT_BATCH, ('main_q', 'first', None, None, None)),
+            C.fetchone(),
+            C.connection.commit(),
+            C.execute(BATCH_CURS, [42, 'batch_walker', 3, None]),
+            C.fetchall(),
+            C.execute('FETCH 3 FROM batch_walker;'),
+            C.fetchall(),
+            # the transaction is not committed: implicit rollback
             C.connection.cursor().__exit__(None, None, None),
         ])
 
