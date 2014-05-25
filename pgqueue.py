@@ -457,7 +457,7 @@ class Consumer(object):
         return self.queue.unregister_consumer(curs, self.consumer_name)
 
     def get_info(self, curs):
-        """Get info abouti the queue."""
+        """Get info about the queue."""
         return self.queue.get_consumer_info(curs, self.consumer_name)
 
 
