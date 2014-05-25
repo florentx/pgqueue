@@ -130,8 +130,22 @@ Credits
 -------
 
 PgQ is a PostgreSQL extension which is developed by Marko Kreen.
-It is part of SkyTools, a package of tools in use in Skype for
-replication and failover.
+It is `part of SkyTools <https://github.com/markokr/skytools>`_,
+a package of tools in use in Skype for replication and failover.
 
 SkyTools embeds also a ``pgq`` Python framework which provides a
 slightly different API.
+
+
+Links
+-----
+
+.. image:: https://travis-ci.org/florentx/pgqueue.svg?branch=master
+   :target: https://travis-ci.org/florentx/pgqueue
+   :alt: Build status
+
+.. image:: https://pypip.in/wheel/pgqueue/badge.png?branch=master
+   :target: https://pypi.python.org/pypi/pgqueue
+   :alt: Wheel Status
+
+* `Fork me on GitHub <http://github.com/florentx/pgqueue>`_
