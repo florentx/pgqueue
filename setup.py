@@ -35,7 +35,7 @@ setup(
     long_description=get_long_description(),
     maintainer="Florent Xicluna",
     maintainer_email="florent.xicluna@gmail.com",
-    url="",
+    url="https://github.com/florentx/pgqueue",
     py_modules=['pgqueue'],
     install_requires=[
         'psycopg2',
