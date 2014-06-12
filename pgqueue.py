@@ -147,6 +147,7 @@ class Batch(object):
         self.fetch_status = 0   # 0-not started, 1-in-progress, 2-done
 
     def _make_event(self, row):
+        row['ev_retry'] = row['ev_retry'] or 0
         return Event([row['ev_' + fld] for fld in Event._fields[:-1]] +
                      [self.failed])
 

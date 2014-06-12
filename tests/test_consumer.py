@@ -123,7 +123,7 @@ class TestEvent(unittest2.TestCase):
 
             self.assertFalse(event.failed)
             self.assertIsNone(event.retry_time)
-            self.assertIsNone(event.retry)
+            self.assertEqual(event.retry, 0)
             # 11 attributes on the Event object (including _failed mapping)
             self.assertEqual(len(event._fields), 11)
             # the main interface is the namedtuple API
@@ -167,18 +167,18 @@ class TestEvent(unittest2.TestCase):
             self.assertTrue(event.failed)
             self.assertEqual(event.retry_time, 199)
             # This is the incremental counter of retries, None initially
-            self.assertIsNone(event.retry)
+            self.assertEqual(event.retry, 0)
 
             # Tag is reversible, until the batch is "finished"
             event.tag_done()
             self.assertFalse(event.failed)
             self.assertIsNone(event.retry_time)
-            self.assertIsNone(event.retry)
+            self.assertEqual(event.retry, 0)
 
             event.tag_retry(99)
             self.assertTrue(event.failed)
             self.assertEqual(event.retry_time, 99)
-            self.assertIsNone(event.retry)
+            self.assertEqual(event.retry, 0)
 
         self.assertSequenceEqual(cur.mock_calls, [
             C.connection.cursor(cursor_factory=ANY),
