@@ -522,7 +522,7 @@ class Ticker(_Connection):
             except Exception as exc:
                 # Something bad happened, re-check the connection
                 self._logger.warning("%s: %s", type(exc).__name__, exc)
-                curs = None
+                curs = self._connection = None
             time.sleep(self.check_period)
 
     def check_pgq(self, curs):
