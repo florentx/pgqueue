@@ -1,4 +1,4 @@
-include LICENSE README.rst
+include LICENSE README.rst CHANGES.rst
 recursive-include tests *
 recursive-exclude tests *.pyc
 recursive-exclude tests *.pyo
