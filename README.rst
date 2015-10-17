@@ -96,12 +96,12 @@ Let's create a new queue, and register a consumer:
 
   conn = psycopg2.connect("dbname=test user=postgres")
   conn.autocommit = True
-  cur = conn.cursor()
+  cursor = conn.cursor()
 
-  first_q = Queue('first_queue')
+  first_q = pgqueue.Queue('first_queue')
   first_q.create(cursor, ticker_max_lag='4 seconds')
 
-  consum_q = Consumer('first_queue', 'consumer_one')
+  consum_q = pgqueue.Consumer('first_queue', 'consumer_one')
   consum_q.register(cursor)
 
 
