@@ -144,8 +144,4 @@ Links
    :target: https://travis-ci.org/florentx/pgqueue
    :alt: Build status
 
-.. image:: https://pypip.in/wheel/pgqueue/badge.png?branch=master
-   :target: https://pypi.python.org/pypi/pgqueue
-   :alt: Wheel Status
-
 * `Fork me on GitHub <http://github.com/florentx/pgqueue>`_
