@@ -2,6 +2,13 @@ Changelog
 =========
 
 
+0.4.1 (2015-10-17)
+~~~~~~~~~~~~~~~~~~
+
+* Fix a bug with PgQ Ticker after January 18th, 2038.
+  Now it's safe until December 31st, 9999.
+
+
 0.4 (2014-09-22)
 ~~~~~~~~~~~~~~~~
 

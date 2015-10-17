@@ -41,9 +41,9 @@ setup(
         'psycopg2',
     ],
     zip_safe=False,
-    keywords="postgresql pgq",
+    keywords="postgresql pgq queue",
     classifiers=[
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 4 - Beta',
         'Environment :: Console',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: ISC License (ISCL)',

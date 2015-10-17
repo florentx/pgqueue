@@ -10,7 +10,7 @@ from operator import itemgetter
 import psycopg2
 import psycopg2.extras
 
-__version__ = '0.4'
+__version__ = '0.4.1'
 __all__ = ['Event', 'Batch', 'Consumer', 'Queue', 'Ticker',
            'bulk_insert_events', 'insert_event']
 
@@ -502,7 +502,7 @@ class Ticker(_Connection):
         self.ticker_period = config.get('ticker_period', 1)
         self._next_ticker = self._next_maint = self._next_retry = 0
         self._next_stats = 0 if (self.stats_period and
-                                 self.stats_period > 0) else 0x7fffffff
+                                 self.stats_period > 0) else 0x3afff43370
         self.n_ticks = self.n_maint = self.n_retry = 0
 
     def run(self):
