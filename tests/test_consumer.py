@@ -189,8 +189,8 @@ class TestEvent(unittest2.TestCase):
             C.execute(BATCH_CURS, [42, 'batch_walker', 300, None]),
             C.fetchall(),
             C.execute('CLOSE batch_walker;'),
-            C.execute('SELECT pgq.event_retry(%s, %s, %s);', (42, 94768, 99)),
-            C.execute('SELECT pgq.event_retry(%s, %s, %s);', (42, 94769, 99)),
+            # Argument is a generator
+            C.executemany('SELECT pgq.event_retry(%s, %s, %s);', ANY),
             C.execute('SELECT pgq.finish_batch(%s);', (42,)),
             C.connection.commit(),
             C.connection.cursor().__exit__(None, None, None),

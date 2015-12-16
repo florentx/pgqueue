@@ -7,6 +7,8 @@ Changelog
 
 * Log the reconnections.
 
+* Single function call to retry any number of events.
+
 
 0.4.1 (2015-10-17)
 ~~~~~~~~~~~~~~~~~~

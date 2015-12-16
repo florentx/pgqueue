@@ -205,9 +205,10 @@ class Batch(object):
 
     def _flush_retry(self):
         """Tag retry events."""
-        for ev_id, retry_time in self.failed.items():
-            self._curs.execute("SELECT pgq.event_retry(%s, %s, %s);",
-                               (self.batch_id, ev_id, retry_time))
+        retried_events = ((self.batch_id, ev_id, retry_time)
+                          for (ev_id, retry_time) in self.failed.items())
+        self._curs.executemany("SELECT pgq.event_retry(%s, %s, %s);",
+                               retried_events)
 
     def __enter__(self):
         return self
