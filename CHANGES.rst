@@ -2,6 +2,12 @@ Changelog
 =========
 
 
+0.5 (unreleased)
+~~~~~~~~~~~~~~~~
+
+* Log the reconnections.
+
+
 0.4.1 (2015-10-17)
 ~~~~~~~~~~~~~~~~~~
 

@@ -10,7 +10,7 @@ from operator import itemgetter
 import psycopg2
 import psycopg2.extras
 
-__version__ = '0.4.1'
+__version__ = '0.5.dev0'
 __all__ = ['Event', 'Batch', 'Consumer', 'Queue', 'Ticker',
            'bulk_insert_events', 'insert_event']
 
@@ -506,8 +506,8 @@ class Ticker(_Connection):
         self.n_ticks = self.n_maint = self.n_retry = 0
 
     def run(self):
-        self._logger.info("Starting Ticker %s", __version__)
         while True:
+            self._logger.info("Starting Ticker %s", __version__)
             try:
                 with self.cursor() as curs:
                     if not self.try_lock(curs):
