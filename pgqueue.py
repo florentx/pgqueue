@@ -10,7 +10,7 @@ from operator import itemgetter
 import psycopg2
 import psycopg2.extras
 
-__version__ = '0.5.dev0'
+__version__ = '0.5'
 __all__ = ['Event', 'Batch', 'Consumer', 'Queue', 'Ticker',
            'bulk_insert_events', 'insert_event']
 
