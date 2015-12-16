@@ -31,6 +31,8 @@ NEXT_BATCH = 'SELECT * FROM pgq.next_batch_custom(%s, %s, %s, %s, %s);'
 BATCH_CURS = 'SELECT * FROM pgq.get_batch_cursor(%s, %s, %s, %s);'
 ANY = mock.ANY
 C = mock.call
+# Should be C.__iter__(), but it is not supported by mock
+C__iter__ = ('__iter__', ())
 
 
 def mock_cursor(autocommit=False):
@@ -94,6 +96,7 @@ class TestConsumer(unittest2.TestCase):
     def test_next_events(self):
         cur = mock_cursor()
         cur.fetchone.side_effect = [BATCH_INFO, BATCH_NULL]
+        cur.rowcount = 42
         consu = pgqueue.Consumer('main_q', 'first')
 
         for event in consu.next_events(cur, limit=1, commit=True):
@@ -101,7 +104,7 @@ class TestConsumer(unittest2.TestCase):
 
         self.assertSequenceEqual(cur.execute.call_args_list, [
             C(NEXT_BATCH, ('main_q', 'first', None, None, None)),
-            C(BATCH_CURS, [42, 'batch_walker', 300, None]),
+            C(BATCH_CURS, (42, 'batch_walker', 300, None)),
             C('CLOSE batch_walker;'),
             C('SELECT pgq.finish_batch(%s);', (42,)),
         ])
@@ -113,7 +116,8 @@ class TestEvent(unittest2.TestCase):
     def test_simple(self):
         cur = mock_cursor()
         cur.fetchone.side_effect = [BATCH_INFO, BATCH_NULL]
-        cur.fetchall.side_effect = [[EVENT1, EVENT2]]
+        cur.__iter__.side_effect = [iter([EVENT1, EVENT2])]
+        cur.rowcount = 2
         consu = pgqueue.Consumer('main_q', 'first')
 
         events = []
@@ -145,8 +149,8 @@ class TestEvent(unittest2.TestCase):
             C.execute(NEXT_BATCH, ('main_q', 'first', None, None, None)),
             C.fetchone(),
             C.connection.commit(),
-            C.execute(BATCH_CURS, [42, 'batch_walker', 300, None]),
-            C.fetchall(),
+            C.execute(BATCH_CURS, (42, 'batch_walker', 300, None)),
+            C__iter__,
             C.execute('CLOSE batch_walker;'),
             C.execute('SELECT pgq.finish_batch(%s);', (42,)),
             C.connection.commit(),
@@ -156,7 +160,8 @@ class TestEvent(unittest2.TestCase):
     def test_retry(self):
         cur = mock_cursor()
         cur.fetchone.side_effect = [BATCH_INFO, BATCH_NULL]
-        cur.fetchall.side_effect = [[EVENT1, EVENT2]]
+        cur.__iter__.side_effect = [iter([EVENT1, EVENT2])]
+        cur.rowcount = 2
         consu = pgqueue.Consumer('main_q', 'first')
 
         for event in consu.next_events(cur, limit=1, commit=True):
@@ -186,8 +191,8 @@ class TestEvent(unittest2.TestCase):
             C.execute(NEXT_BATCH, ('main_q', 'first', None, None, None)),
             C.fetchone(),
             C.connection.commit(),
-            C.execute(BATCH_CURS, [42, 'batch_walker', 300, None]),
-            C.fetchall(),
+            C.execute(BATCH_CURS, (42, 'batch_walker', 300, None)),
+            C__iter__,
             C.execute('CLOSE batch_walker;'),
             # Argument is a generator
             C.executemany('SELECT pgq.event_retry(%s, %s, %s);', ANY),
@@ -199,7 +204,16 @@ class TestEvent(unittest2.TestCase):
     def test_large_batch(self):
         cur = mock_cursor()
         cur.fetchone.side_effect = [BATCH_INFO, BATCH_NULL]
-        cur.fetchall.side_effect = [[EVENT1, EVENT2, EVENT3], [EVENT4]]
+
+        def execute(command, *params, _rowcounts=[3, 1, 0]):
+            if command == BATCH_CURS or command.startswith('FETCH'):
+                cur.rowcount = _rowcounts.pop(0)
+            else:
+                cur.rowcount = mock.Mock()
+
+        cur.execute.side_effect = execute
+        cur.__iter__.side_effect = [iter([EVENT1, EVENT2, EVENT3]),
+                                    iter([EVENT4])]
         consu = pgqueue.Consumer('main_q', 'first')
         consu.pgq_lazy_fetch = 3    # instead of 300
 
@@ -222,10 +236,10 @@ class TestEvent(unittest2.TestCase):
             C.execute(NEXT_BATCH, ('main_q', 'first', None, None, None)),
             C.fetchone(),
             C.connection.commit(),
-            C.execute(BATCH_CURS, [42, 'batch_walker', 3, None]),
-            C.fetchall(),
+            C.execute(BATCH_CURS, (42, 'batch_walker', 3, None)),
+            C__iter__,
             C.execute('FETCH 3 FROM batch_walker;'),
-            C.fetchall(),
+            C__iter__,
             C.execute('CLOSE batch_walker;'),
             C.execute('SELECT pgq.finish_batch(%s);', (42,)),
             C.connection.commit(),
@@ -238,7 +252,16 @@ class TestEvent(unittest2.TestCase):
     def test_abort(self):
         cur = mock_cursor()
         cur.fetchone.side_effect = [BATCH_INFO, BATCH_NULL]
-        cur.fetchall.side_effect = [[EVENT1, EVENT2, EVENT3], [EVENT4]]
+
+        def execute(command, *params, _rowcounts=[3, 1, 0]):
+            if command == BATCH_CURS or command.startswith('FETCH'):
+                cur.rowcount = _rowcounts.pop(0)
+            else:
+                cur.rowcount = mock.Mock()
+
+        cur.execute.side_effect = execute
+        cur.__iter__.side_effect = [iter([EVENT1, EVENT2, EVENT3]),
+                                    iter([EVENT4])]
         consu = pgqueue.Consumer('main_q', 'first')
         consu.pgq_lazy_fetch = 3    # instead of 300
 
@@ -254,10 +277,10 @@ class TestEvent(unittest2.TestCase):
             C.execute(NEXT_BATCH, ('main_q', 'first', None, None, None)),
             C.fetchone(),
             C.connection.commit(),
-            C.execute(BATCH_CURS, [42, 'batch_walker', 3, None]),
-            C.fetchall(),
+            C.execute(BATCH_CURS, (42, 'batch_walker', 3, None)),
+            C__iter__,
             C.execute('FETCH 3 FROM batch_walker;'),
-            C.fetchall(),
+            C__iter__,
             # the transaction is not committed: implicit rollback
             C.connection.cursor().__exit__(None, None, None),
         ])

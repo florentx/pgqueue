@@ -9,6 +9,8 @@ Changelog
 
 * Single function call to retry any number of events.
 
+* Lower memory usage.
+
 
 0.4.1 (2015-10-17)
 ~~~~~~~~~~~~~~~~~~

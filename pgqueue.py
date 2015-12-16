@@ -151,33 +151,33 @@ class Batch(object):
         return Event([row['ev_' + fld] for fld in Event._fields[:-1]] +
                      [self.failed])
 
-    def _fetchall(self):
-        q = "SELECT * FROM pgq.get_batch_events(%d)" % self.batch_id
+    def _fetch(self):
+        q = "SELECT * FROM pgq.get_batch_events(%s)"
         if self.predicate:
             q += " WHERE %s" % self.predicate
-        self._curs.execute(q)
-        rows = self._curs.fetchall()
-        self.length = len(rows)
-        return rows
+        self._curs.execute(q, (self.batch_id,))
+        self.length = self._curs.rowcount
+        # Cursor is an iterable
+        return self._curs
 
     def _fetchcursor(self):
         q = "SELECT * FROM pgq.get_batch_cursor(%s, %s, %s, %s);"
-        self._curs.execute(q, [self.batch_id, self._cursor_name,
-                               self.fetch_size, self.predicate])
+        self._curs.execute(q, (self.batch_id, self._cursor_name,
+                               self.fetch_size, self.predicate))
         # this will return first batch of rows
 
         q = "FETCH %d FROM %s;" % (self.fetch_size, self._cursor_name)
         while True:
-            rows = self._curs.fetchall()
-            if not rows:
+            rowcount = self._curs.rowcount
+            if not rowcount:
                 break
 
-            self.length += len(rows)
-            for row in rows:
+            self.length += rowcount
+            for row in self._curs:
                 yield row
 
             # if less rows than requested, it was final block
-            if len(rows) < self.fetch_size:
+            if rowcount < self.fetch_size:
                 break
 
             # request next block of rows
@@ -189,7 +189,7 @@ class Batch(object):
         if self.fetch_status:
             raise RuntimeError("Batch: double fetch? (%d)" % self.fetch_status)
         self.fetch_status = 1
-        fetchall = self._fetchcursor if self.fetch_size else self._fetchall
+        fetchall = self._fetchcursor if self.fetch_size else self._fetch
         for row in fetchall():
             yield self._make_event(row)
         self.fetch_status = 2
