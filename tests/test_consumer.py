@@ -214,7 +214,7 @@ class TestEvent(unittest2.TestCase):
         cur.execute.side_effect = execute
         cur.__iter__.side_effect = [iter([EVENT1, EVENT2, EVENT3]),
                                     iter([EVENT4])]
-        rowcounts=[3, 1, 0]
+        rowcounts = [3, 1, 0]
         consu = pgqueue.Consumer('main_q', 'first')
         consu.pgq_lazy_fetch = 3    # instead of 300
 
@@ -263,7 +263,7 @@ class TestEvent(unittest2.TestCase):
         cur.execute.side_effect = execute
         cur.__iter__.side_effect = [iter([EVENT1, EVENT2, EVENT3]),
                                     iter([EVENT4])]
-        rowcounts=[3, 1, 0]
+        rowcounts = [3, 1, 0]
         consu = pgqueue.Consumer('main_q', 'first')
         consu.pgq_lazy_fetch = 3    # instead of 300
 
