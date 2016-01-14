@@ -14,7 +14,7 @@ __version__ = '0.6.dev0'
 __all__ = ['Event', 'Batch', 'Consumer', 'Queue', 'Ticker',
            'bulk_insert_events', 'insert_event']
 
-PY2 = hasattr(dict, 'itervalues')
+PY2 = hasattr(dict, 'iteritems')
 
 
 class _DisposableFile(dict):
@@ -83,6 +83,9 @@ class Event(tuple):
                'extra1', 'extra2', 'extra3', 'extra4',
                'retry', '_failed')
 
+    def __hash__(self):
+        return tuple.__hash__(self[:4])
+
     # Provide the event attributes as instance properties
     for _n, _attr in enumerate(_fields):
         locals()[_attr] = property(itemgetter(_n))
@@ -95,7 +98,7 @@ class Event(tuple):
     @property
     def failed(self):
         """Planned for retry?"""
-        return self.id in self._failed
+        return self in self._failed
 
     @property
     def retry_time(self):
@@ -103,21 +106,19 @@ class Event(tuple):
 
         It returns None if this event is not planned for retry.
         """
-        failed = self._failed.get(self.id)
-        if failed:
-            return failed[1]
+        return self._failed.get(self)
 
     def tag_done(self):
         """Flag this event done (not necessary)."""
-        if self.id in self._failed:
-            del self._failed[self.id]
+        if self in self._failed:
+            del self._failed[self]
 
     def tag_retry(self, retry_time=60):
         """Flag this event for retry.
 
         It will be put back in queue and included in a future batch.
         """
-        self._failed[self.id] = (self, retry_time)
+        self._failed[self] = retry_time
 
     def __str__(self):
         return ("<id=%(id)d type=%(type)s data=%(data)s e1=%(extra1)s "
@@ -210,7 +211,7 @@ class Batch(object):
 
     def _flush_retry(self):
         """Tag retry events."""
-        values = self.failed.itervalues() if PY2 else self.failed.values()
+        values = self.failed.iteritems() if PY2 else self.failed.items()
         retried_events = ((
             self.queue_name,
             self.consumer_name,

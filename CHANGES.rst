@@ -7,6 +7,8 @@ Changelog
 
 * Speed-up ``Event.tag_retry()``.
 
+* Instances of ``Event`` are hashable.
+
 
 0.5 (2015-12-16)
 ~~~~~~~~~~~~~~~~
