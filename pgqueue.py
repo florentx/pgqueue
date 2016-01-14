@@ -10,7 +10,7 @@ from operator import itemgetter
 import psycopg2
 import psycopg2.extras
 
-__version__ = '0.6.dev0'
+__version__ = '0.6'
 __all__ = ['Event', 'Batch', 'Consumer', 'Queue', 'Ticker',
            'bulk_insert_events', 'insert_event']
 
@@ -261,7 +261,7 @@ class Batch(object):
 
     def __bool__(self):
         return self.batch_id is not None
-    __nonzero__ = __bool__
+    __nonzero__ = __bool__  # Python 2
 
     def __repr__(self):
         return '<Batch %s:%d>' % (self.queue_name, self.batch_id)
