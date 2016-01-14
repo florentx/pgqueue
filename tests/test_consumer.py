@@ -195,7 +195,9 @@ class TestEvent(unittest2.TestCase):
             C__iter__,
             C.execute('CLOSE batch_walker;'),
             # Argument is a generator
-            C.executemany('SELECT pgq.event_retry(%s, %s, %s);', ANY),
+            C.executemany('SELECT pgq.event_retry_raw(%s, %s, '
+                          'CURRENT_TIMESTAMP + INTERVAL %s, %s, %s, %s, %s, '
+                          '%s, %s, %s, %s, %s);', ANY),
             C.execute('SELECT pgq.finish_batch(%s);', (42,)),
             C.connection.commit(),
             C.connection.cursor().__exit__(None, None, None),

@@ -10,9 +10,11 @@ from operator import itemgetter
 import psycopg2
 import psycopg2.extras
 
-__version__ = '0.5'
+__version__ = '0.6.dev0'
 __all__ = ['Event', 'Batch', 'Consumer', 'Queue', 'Ticker',
            'bulk_insert_events', 'insert_event']
+
+PY2 = hasattr(dict, 'itervalues')
 
 
 class _DisposableFile(dict):
@@ -101,7 +103,9 @@ class Event(tuple):
 
         It returns None if this event is not planned for retry.
         """
-        return self._failed.get(self.id)
+        failed = self._failed.get(self.id)
+        if failed:
+            return failed[1]
 
     def tag_done(self):
         """Flag this event done (not necessary)."""
@@ -113,7 +117,7 @@ class Event(tuple):
 
         It will be put back in queue and included in a future batch.
         """
-        self._failed[self.id] = retry_time
+        self._failed[self.id] = (self, retry_time)
 
     def __str__(self):
         return ("<id=%(id)d type=%(type)s data=%(data)s e1=%(extra1)s "
@@ -135,9 +139,10 @@ class Batch(object):
     # can retry events
     _retriable = True
 
-    def __init__(self, curs, batch_id, queue_name,
+    def __init__(self, curs, batch_id, queue_name, consumer_name,
                  fetch_size=300, predicate=None):
         self.queue_name = queue_name
+        self.consumer_name = consumer_name
         self.fetch_size = fetch_size
         self.batch_id = batch_id
         self.predicate = predicate
@@ -205,10 +210,24 @@ class Batch(object):
 
     def _flush_retry(self):
         """Tag retry events."""
-        retried_events = ((self.batch_id, ev_id, retry_time)
-                          for (ev_id, retry_time) in self.failed.items())
-        self._curs.executemany("SELECT pgq.event_retry(%s, %s, %s);",
-                               retried_events)
+        values = self.failed.itervalues() if PY2 else self.failed.values()
+        retried_events = ((
+            self.queue_name,
+            self.consumer_name,
+            '%s seconds' % retry_time,
+            ev.id,
+            ev.time,
+            ev.retry + 1,
+            ev.type,
+            ev.data,
+            ev.extra1,
+            ev.extra2,
+            ev.extra3,
+            ev.extra4,
+        ) for (ev, retry_time) in values)
+        self._curs.executemany(
+            "SELECT pgq.event_retry_raw(%s, %s, CURRENT_TIMESTAMP + INTERVAL "
+            "%s, %s, %s, %s, %s, %s, %s, %s, %s, %s);", retried_events)
 
     def __enter__(self):
         return self
@@ -223,7 +242,9 @@ class Batch(object):
 
     def __bool__(self):
         return self.batch_id is not None
-    __nonzero__ = __bool__  # Python 2
+    if PY2:
+        __nonzero__ = __bool__
+        del __bool__
 
     def __repr__(self):
         return '<Batch %s:%d>' % (self.queue_name, self.batch_id)
@@ -447,7 +468,8 @@ class Consumer(object):
         batch_id = inf['batch_id']
         if batch_id is None:
             return batch_id
-        return self._batch_class(curs, batch_id, self.queue_name,
+        return self._batch_class(curs, batch_id,
+                                 self.queue_name, self.consumer_name,
                                  self.pgq_lazy_fetch, self.predicate)
 
     def register(self, curs, tick_id=None):
