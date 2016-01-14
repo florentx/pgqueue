@@ -9,6 +9,8 @@ Changelog
 
 * Instances of ``Event`` are hashable.
 
+* Preserve order of events on retry.
+
 
 0.5 (2015-12-16)
 ~~~~~~~~~~~~~~~~

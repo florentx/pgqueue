@@ -14,8 +14,6 @@ __version__ = '0.6.dev0'
 __all__ = ['Event', 'Batch', 'Consumer', 'Queue', 'Ticker',
            'bulk_insert_events', 'insert_event']
 
-PY2 = hasattr(dict, 'iteritems')
-
 
 class _DisposableFile(dict):
     """Awfully limited file API for psycopg2 copy_from."""
@@ -24,6 +22,27 @@ class _DisposableFile(dict):
     def read(self, size=-1):
         return self.pop('content', '')
     readline = read
+
+
+class _RetryList(dict):
+    """Kind of ordered dict."""
+    __slots__ = ('_items',)
+
+    def __init__(self):
+        self._items = []
+
+    def __setitem__(self, key, value, _setitem=dict.__setitem__):
+        if key not in self:
+            self._items.append(key)
+        _setitem(self, key, value)
+
+    def __delitem__(self, key, _delitem=dict.__delitem__):
+        _delitem(self, key)
+        self._items.remove(key)
+
+    def __iter__(self):
+        for key in self._items:
+            yield (key, self[key])
 
 
 def quote_ident(s):
@@ -149,8 +168,8 @@ class Batch(object):
         self.predicate = predicate
         self._curs = curs
         self.length = 0
-        self.failed = {}        # {ev_id: retry_time}
-        self.fetch_status = 0   # 0-not started, 1-in-progress, 2-done
+        self.failed = _RetryList()  # {event: retry_time}
+        self.fetch_status = 0       # 0-not started, 1-in-progress, 2-done
 
     def _make_event(self, row):
         row['ev_retry'] = row['ev_retry'] or 0
@@ -211,7 +230,6 @@ class Batch(object):
 
     def _flush_retry(self):
         """Tag retry events."""
-        values = self.failed.iteritems() if PY2 else self.failed.items()
         retried_events = ((
             self.queue_name,
             self.consumer_name,
@@ -225,7 +243,7 @@ class Batch(object):
             ev.extra2,
             ev.extra3,
             ev.extra4,
-        ) for (ev, retry_time) in values)
+        ) for (ev, retry_time) in self.failed)
         self._curs.executemany(
             "SELECT pgq.event_retry_raw(%s, %s, CURRENT_TIMESTAMP + INTERVAL "
             "%s, %s, %s, %s, %s, %s, %s, %s, %s, %s);", retried_events)
@@ -243,9 +261,7 @@ class Batch(object):
 
     def __bool__(self):
         return self.batch_id is not None
-    if PY2:
-        __nonzero__ = __bool__
-        del __bool__
+    __nonzero__ = __bool__
 
     def __repr__(self):
         return '<Batch %s:%d>' % (self.queue_name, self.batch_id)
